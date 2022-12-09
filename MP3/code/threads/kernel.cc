@@ -76,16 +76,7 @@ Kernel::Kernel(int argc, char **argv)
 	    	cout << "Partial usage: nachos [-nf]\n";
 #endif
             cout << "Partial usage: nachos [-n #] [-m #]\n";
-		} else if(strcmp(argv[i], "-ep") == 0){
-            execfile[++execfileNum]= argv[++i];
-            short p = 0;
-            ++i;
-            for(int j = 0 ; j < strlen(argv[i]) ; j++){
-                p = p*10+(argv[i][j] - '0');
-            }
-            execPriority[execfileNum] = p;
-			cout << "Executing: "<<execfile[execfileNum] <<", priority: "<<execPriority[execfileNum]<< "\n";
-        }
+		} 
     }
 }
 

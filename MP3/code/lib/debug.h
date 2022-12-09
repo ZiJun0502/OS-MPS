@@ -30,8 +30,6 @@ const char dbgAddr = 'a'; 		// address spaces
 const char dbgNet = 'n'; 		// network emulation
 const char dbgSys = 'u';                // systemcall
 const char dbgTraCode = 'c';
-//multilevel feedback queue
-const char dbgMFQ= 'z';
 
 class Debug {
   public:
