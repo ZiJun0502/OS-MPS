@@ -35,9 +35,6 @@ const int STACK_FENCEPOST = 0xdedbeef;
 
 Thread::Thread(char* threadName, int threadID)
 {
-    rlist = {
-        L1,L2,L3
-    };
 	ID = threadID;
     name = threadName;
     CPUBurstTime = 0;
@@ -58,9 +55,9 @@ Thread::Thread(char* threadName, int threadID)
     }
     space = NULL;
 }
-void UpdateBurst(int endTime){
-    double duration = endTime - EnterCPU;
-    apprBurstTime = 0.5d * duration + 0.5 * apprBurstTime;
+void Thread::UpdateBurst(int endTime){
+    double duration = endTime - enterCPUTime;
+    apprBurstTime = 0.5 * duration + 0.5 * apprBurstTime;
 }
 //----------------------------------------------------------------------
 // Thread::~Thread
