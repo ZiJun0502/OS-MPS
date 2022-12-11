@@ -74,12 +74,12 @@ class Kernel {
     int numFreeFrame;
 
     int hostName;               // machine identifier
-
+    short execPriority[10];
   private:
 
 	Thread* t[10];
 	char*   execfile[10];
-  short execPriority[10];
+  
 	int execfileNum;
 	int threadNum;
     bool randomSlice;		// enable pseudo-random time slicing

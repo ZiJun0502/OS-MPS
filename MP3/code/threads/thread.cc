@@ -37,6 +37,9 @@ Thread::Thread(char* threadName, int threadID)
 {
 	ID = threadID;
     name = threadName;
+    CPUTime = 0;
+    priority = kernel->execPriority[threadID];
+    waitingTime = 0;
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;

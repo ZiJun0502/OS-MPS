@@ -41,8 +41,8 @@ int cmp2(Thread* a, Thread* b){
 Scheduler::Scheduler()
 { 
     readyList = new List<Thread *>; 
-    L1 = new SortedList<Thread *>;
-    L2 = new SortedList<Thread *>;
+    L1 = new SortedList<Thread *>(cmp1);
+    L2 = new SortedList<Thread *>(cmp2);
     L3 = new List<Thread *>;
     toBeDestroyed = NULL;
 } 
@@ -84,11 +84,11 @@ Scheduler::ReadyToRun (Thread *thread)
     */
     //else append it
     if(thread->priority >= 0 && thread->priority <= 49){
-        L3.Append(thread);
+        L3->Append(thread);
     }else if(thread->priority <= 99){
-        L2.Append(thread);
+        L2->Insert(thread);
     }else if(thread->priority <= 149){
-        L1.Append(thread);
+        L1->Insert(thread);
     }
 }
 
@@ -104,7 +104,7 @@ Thread *
 Scheduler::FindNextToRun ()
 {
     ASSERT(kernel->interrupt->getLevel() == IntOff);
-    Thread* nexToRun = NULL;
+    Thread* nextToRun = NULL;
     if(!L1->IsEmpty()){
         nextToRun = L1->RemoveFront();
     } else if(!L2->IsEmpty()){
