@@ -218,10 +218,17 @@ Thread::Yield ()
     
     DEBUG(dbgThread, "Yielding thread: " << name);
     
-    nextThread = kernel->scheduler->FindNextToRun();
-    if (nextThread != NULL) {
-	kernel->scheduler->ReadyToRun(this);
-	kernel->scheduler->Run(nextThread, FALSE);
+    // if the thread belong to L3, do round robin
+    if(this->belong == 3){
+        if (nextThread != NULL) {
+        int now = kernel->stats->totalTicks;
+        currentThread->UpdateBurst(now);
+        currentThread->leaveCPUTime = now;
+        nextThread = kernel->scheduler->FindNextToRun();
+        nextThread->enterCPUTime = now;
+        kernel->scheduler->ReadyToRun(this);
+        kernel->scheduler->Run(nextThread, FALSE);
+        }
     }
     (void) kernel->interrupt->SetLevel(oldLevel);
 }
