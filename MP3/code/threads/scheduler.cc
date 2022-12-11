@@ -28,10 +28,22 @@
 // 	Initialize the list of ready but not running threads.
 //	Initially, no ready threads.
 //----------------------------------------------------------------------
-
+int cmp1(Thread* a, Thread* b){
+    if(a->CPUTime > b->CPUTime) return 1;
+    if(a->CPUTime < b->CPUTime) return -1;
+    return 0;
+}
+int cmp2(Thread* a, Thread* b){
+    if(a->priority > b->priority) return 1;
+    if(a->priority < b->priority) return -1;
+    return 0;
+}
 Scheduler::Scheduler()
 { 
     readyList = new List<Thread *>; 
+    L1 = new SortedList<Thread *>;
+    L2 = new SortedList<Thread *>;
+    L3 = new List<Thread *>;
     toBeDestroyed = NULL;
 } 
 
@@ -42,7 +54,10 @@ Scheduler::Scheduler()
 
 Scheduler::~Scheduler()
 { 
-    delete readyList; 
+    delete readyList;
+    delete L1;
+    delete L2;
+    delete L3; 
 } 
 
 //----------------------------------------------------------------------
@@ -60,7 +75,21 @@ Scheduler::ReadyToRun (Thread *thread)
     DEBUG(dbgThread, "Putting thread on ready list: " << thread->getName());
 	//cout << "Putting thread on ready list: " << thread->getName() << endl ;
     thread->setStatus(READY);
-    readyList->Append(thread);
+    // readyList->Append(thread);
+    //TODO
+    //if the thread has priority that is smaller than the
+    // current thread => ask for a context switch.
+    /*
+    
+    */
+    //else append it
+    if(thread->priority >= 0 && thread->priority <= 49){
+        L3.Append(thread);
+    }else if(thread->priority <= 99){
+        L2.Append(thread);
+    }else if(thread->priority <= 149){
+        L1.Append(thread);
+    }
 }
 
 //----------------------------------------------------------------------
@@ -75,12 +104,20 @@ Thread *
 Scheduler::FindNextToRun ()
 {
     ASSERT(kernel->interrupt->getLevel() == IntOff);
-
-    if (readyList->IsEmpty()) {
-		return NULL;
-    } else {
-    	return readyList->RemoveFront();
+    Thread* nexToRun = NULL;
+    if(!L1->IsEmpty()){
+        nextToRun = L1->RemoveFront();
+    } else if(!L2->IsEmpty()){
+        nextToRun = L2->RemoveFront();
+    } else if(!L3->IsEmpty()){
+        nextToRun = L3->RemoveFront();
     }
+    return nextToRun;
+    // if (readyList->IsEmpty()) {
+	// 	return NULL;
+    // } else {
+    // 	return readyList->RemoveFront();
+    // }
 }
 
 //----------------------------------------------------------------------
