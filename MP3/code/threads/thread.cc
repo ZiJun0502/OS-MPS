@@ -35,11 +35,19 @@ const int STACK_FENCEPOST = 0xdedbeef;
 
 Thread::Thread(char* threadName, int threadID)
 {
+    rlist = {
+        L1,L2,L3
+    };
 	ID = threadID;
     name = threadName;
-    CPUTime = 0;
-    priority = kernel->execPriority[threadID];
+    CPUBurstTime = 0;
+    apprBurstTime = 0;
+    enterCPUTime = 0;
+    leaveCPUTime = 0;
+    enterWait = 0;
     waitingTime = 0;
+    remainBurstTime = 0;
+    priority = kernel->execPriority[threadID];
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
@@ -50,7 +58,10 @@ Thread::Thread(char* threadName, int threadID)
     }
     space = NULL;
 }
-
+void UpdateBurst(int endTime){
+    double duration = endTime - EnterCPU;
+    apprBurstTime = 0.5d * duration + 0.5 * apprBurstTime;
+}
 //----------------------------------------------------------------------
 // Thread::~Thread
 // 	De-allocate a thread.

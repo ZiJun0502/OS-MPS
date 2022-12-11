@@ -72,7 +72,7 @@ enum ThreadStatus { JUST_CREATED, RUNNING, READY, BLOCKED, ZOMBIE };
 //    
 //  Some threads also belong to a user address space; threads
 //  that only run in the kernel have a NULL address space.
-
+enum listBelong{L1 = 1, L2, L3};
 class Thread {
   private:
     // NOTE: DO NOT CHANGE the order of these first two members.
@@ -106,9 +106,16 @@ class Thread {
 	int getID() { return (ID); }
     void Print() { cout << name; }
     void SelfTest();		// test whether thread impl is working
-  int CPUTime;
-  int priority;
+    void UpdateBurst(int endTime);
+  listBelong belong;
+  double CPUBurstTime;
+  double apprBurstTime;
+  double remainBurstTime;
+  int enterCPUTime;
+  int leaveCPUTime;
+  int enterWait;
   int waitingTime;
+  int priority;
   private:
     // some of the private data for this class is listed above
     

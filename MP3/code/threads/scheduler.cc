@@ -85,10 +85,13 @@ Scheduler::ReadyToRun (Thread *thread)
     //else append it
     if(thread->priority >= 0 && thread->priority <= 49){
         L3->Append(thread);
+        thread->belong = L3;
     }else if(thread->priority <= 99){
         L2->Insert(thread);
+        thread->belong = L2;
     }else if(thread->priority <= 149){
         L1->Insert(thread);
+        thread->belong = L1;
     }
 }
 
