@@ -37,6 +37,7 @@ Thread::Thread(char* threadName, int threadID)
 {
 	ID = threadID;
     name = threadName;
+
     CPUBurstTime = 0;
     apprBurstTime = 0;
     enterCPUTime = 0;
@@ -45,6 +46,11 @@ Thread::Thread(char* threadName, int threadID)
     waitingTime = 0;
     remainBurstTime = 0;
     priority = kernel->execPriority[threadID];
+    
+    // wanyin 
+    stick = -1; // 先將執行的時間設定為-1
+    this->setBurstTime(0);
+    this->setPriority(priority);
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;

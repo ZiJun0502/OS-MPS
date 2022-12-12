@@ -38,14 +38,49 @@ int cmp2(Thread* a, Thread* b){
     if(a->priority < b->priority) return -1;
     return 0;
 }
+
+
+//wanyin
+int compPriority(Thread* a, Thread* b) { // compare Priority
+    if (a->getPriority() == b->getPriority()) {
+        return 0;
+    }
+    if (a->getPriority() > b->getPriority()) {
+        return 1;
+    }
+    if (a->getPriority() < b->getPriority()) {
+        return -1;
+    }
+}
+int compSJFS(Thread* a, Thread* b) { // Preepmptive short job first
+    if (a->getBurstTime() == b->getBurstTime()) {
+        return 0;
+    }
+    if (a->getBurstTime() > b->getBurstTime()) {
+        return 1;
+    }
+    if (a->getBurstTime() < b->getBurstTime()) {
+        return -1;
+    }
+}
+
+
 Scheduler::Scheduler()
 { 
     readyList = new List<Thread *>; 
     L1 = new SortedList<Thread *>(cmp1);
     L2 = new SortedList<Thread *>(cmp2);
     L3 = new List<Thread *>;
+
+    // wanyin
+    L1_readyList = new SortedList<Thread *>(compSJFS);
+    L2_readyList = new SortedList<Thread *>(compPriority);
+    L3_readyList = new List<Thread *>;
     toBeDestroyed = NULL;
 } 
+
+
+
 
 //----------------------------------------------------------------------
 // Scheduler::~Scheduler
@@ -57,7 +92,12 @@ Scheduler::~Scheduler()
     delete readyList;
     delete L1;
     delete L2;
-    delete L3; 
+    delete L3;
+
+    // wanyin 
+    delete L1_readyList;
+    delete L2_readyList;
+    delete L3_readyList;
 } 
 
 //----------------------------------------------------------------------
@@ -93,6 +133,25 @@ Scheduler::ReadyToRun (Thread *thread)
         L1->Insert(thread);
         thread->listBelong = 1;
     }
+
+
+    // wanyin
+    int p = thread->getPriority();
+    if (p > 99) { // L1 
+        L1_readyList->Insert(thread);
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << thread->getID() << "is inserted into queue L1_readyList");
+        // if the current thread has the lowest burst time, not be preempted
+        int currentBurstTime = kernel->currentThread->getBurstTime()*0.5 + (kernel->stats->userTicks-kernel->currentThread->stick)*0.5;
+        if (currentBurstTime > thread->getBurstTime()) {
+            kernel->currentThread->Yield(); //?? 
+        }
+    } else if (p > 49) {
+        L2_readyList->Insert(thread);
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << thread->getID() << "is inserted into queue L2_readyList");
+    } else if (p >= 0) {
+        L3_readyList->Append(thread);
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << thread->getID() << "is inserted into queue L3_readyList");
+    }
 }
 
 //----------------------------------------------------------------------
@@ -110,10 +169,13 @@ Scheduler::FindNextToRun ()
     Thread* nextToRun = NULL;
     if(!L1->IsEmpty()){
         nextToRun = L1->RemoveFront();
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << kernel->currentThread->getID() << "is remove from queue L1");
     } else if(!L2->IsEmpty()){
         nextToRun = L2->RemoveFront();
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << kernel->currentThread->getID() << "is remove from queue L2");
     } else if(!L3->IsEmpty()){
         nextToRun = L3->RemoveFront();
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << kernel->currentThread->getID() << "is remove from queue L3");
     }
     return nextToRun;
     // if (readyList->IsEmpty()) {
@@ -121,6 +183,7 @@ Scheduler::FindNextToRun ()
     // } else {
     // 	return readyList->RemoveFront();
     // }
+
 }
 
 //----------------------------------------------------------------------
@@ -163,13 +226,24 @@ Scheduler::Run (Thread *nextThread, bool finishing)
     kernel->currentThread = nextThread;  // switch to the next thread
     nextThread->setStatus(RUNNING);      // nextThread is now running
     
+    // wanyin
+    // int currentBurstTime = oldThread->getBurstTime()*0.5 + (kernel->stats->userTicks-oldThread->stick)*0.5;
+    // update burst time
+    int diff = oldThread->getBurstTime() - (kernel->stats->userTicks-oldThread->stick);
+    if (diff > 0) {
+        oldThread->setBurstTime(diff); // ??
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << oldThread->getID()<< "] update approximate burst time, from " << "?" <<", add" << "?" << ", to" << "?" );
+    }
+    
+
+    nextThread->stick = kernel->stats->userTicks;
     DEBUG(dbgThread, "Switching from: " << oldThread->getName() << " to: " << nextThread->getName());
     
     // This is a machine-dependent assembly language routine defined 
     // in switch.s.  You may have to think
     // a bit to figure out what happens after this, both from the point
     // of view of the thread and from the perspective of the "outside world".
-
+    DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << nextThread->getID()<< "] is now selected for execution, thread [" << oldThread->getID() <<"] is replaced,and it has executed [" << kernel->stats->userTicks);
     SWITCH(oldThread, nextThread);
 
     // we're back, running oldThread

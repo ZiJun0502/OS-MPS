@@ -24,6 +24,7 @@ class PostOfficeOutput;
 class SynchConsoleInput;
 class SynchConsoleOutput;
 class SynchDisk;
+// class SchedulerType;
 
 typedef int OpenFileId;
 
@@ -69,6 +70,8 @@ class Kernel {
     PostOfficeInput *postOfficeIn;
     PostOfficeOutput *postOfficeOut;
 
+    // SchedulerType *scheType;
+
     // Recording used physical memory
     bool frameTable[NumPhysPages];
     int numFreeFrame;
@@ -87,6 +90,7 @@ class Kernel {
     double reliability;         // likelihood messages are dropped
     char *consoleIn;            // file to read console input from
     char *consoleOut;           // file to send console output to
+    // char *scheType;
 #ifndef FILESYS_STUB
     bool formatFlag;          // format the disk if this is true
 #endif

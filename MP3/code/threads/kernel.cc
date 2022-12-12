@@ -30,6 +30,10 @@ Kernel::Kernel(int argc, char **argv)
     debugUserProg = FALSE;
     consoleIn = NULL;          // default is stdin
     consoleOut = NULL;         // default is stdout
+    
+    // MFQ
+    SchedulerType scheType;
+
 #ifndef FILESYS_STUB
     formatFlag = FALSE;
 #endif
@@ -77,13 +81,27 @@ Kernel::Kernel(int argc, char **argv)
 #endif
             cout << "Partial usage: nachos [-n #] [-m #]\n";
 		} else if(strcmp(argv[i], "-ep") == 0){
+            ASSERT(i + 1 < argc);   // next argument is scheduler type string
             execfile[++execfileNum]= argv[++i];
-            short p = 0;
+            // short p = 0;
             ++i;
-            for(int j = 0 ; j < strlen(argv[i]) ; j++){
-                p = p*10+(argv[i][j] - '0');
+            // for(int j = 0 ; j < strlen(argv[i]) ; j++){
+            //     p = p*10+(argv[i][j] - '0');
+            // }
+            // execPriority[execfileNum] = p;
+
+            cout << argv[i] << "\n";
+            execPriority[execfileNum] = atoi(argv[i]);
+            if (execPriority[execfileNum] >=0 && execPriority[execfileNum] <=49) { // L3
+                scheType = RR;
+                cout << "Using Round Robin." << endl;
+            } else if (execPriority[execfileNum] >=50 && execPriority[execfileNum] <=99) { // L2
+                scheType = non_preemptive;
+                cout << "Using Non-Preemptive Priority." << endl;
+            } else if (execPriority[execfileNum] >=100 && execPriority[execfileNum] <=149) { // L1
+                scheType = preemptive_SJF;
+                cout << "Using Preemptive Shortest Job First." << endl;
             }
-            execPriority[execfileNum] = p;
 			cout << "Executing: "<<execfile[execfileNum] <<", priority: "<<execPriority[execfileNum]<< "\n";
         }
     }

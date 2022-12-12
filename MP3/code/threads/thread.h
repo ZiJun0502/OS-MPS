@@ -79,6 +79,11 @@ class Thread {
     int *stackTop;			 // the current stack pointer
     void *machineState[MachineStateSize];  // all registers except for stackTop
 
+    // wanyin
+  int brustTime;
+  int startTime;
+  int schePriority;
+
   public:
     Thread(char* debugName, int threadID);		// initialize a Thread 
     ~Thread(); 				// deallocate a Thread
@@ -115,6 +120,17 @@ class Thread {
   int enterWait;
   int waitingTime;
   int priority;
+
+  //wanyin
+  void setPriority(int p) { schePriority = p; }
+  int getPriority() { return schePriority; }
+  void setBurstTime(double b) { brustTime = b; }
+  double getBurstTime() { return brustTime; }
+  void setStartTime(double s) { startTime = s; }
+  double getStartTime() { return startTime; }
+
+  int stick;
+
   private:
     // some of the private data for this class is listed above
     

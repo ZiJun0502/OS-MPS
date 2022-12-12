@@ -17,6 +17,12 @@
 // the data structures and operations needed to keep track of which 
 // thread is running, and which threads are ready but not running.
 
+enum SchedulerType {
+        RR,     // Round Robin
+        preemptive_SJF,
+        non_preemptive
+};
+
 class Scheduler {
   public:
     Scheduler();		// Initialize list of ready threads 
@@ -34,12 +40,24 @@ class Scheduler {
     
     // SelfTest for scheduler is implemented in class Thread
     
+
+    // wanyin
+    // int compPriority(Thread* a, Thread* b);
+    // int compSJFS(Thread* a, Thread *b);
+
   private:
     List<Thread *> *readyList;  // queue of threads that are ready to run,
 				// but not running
     SortedList<Thread *> *L1;
     SortedList<Thread *> *L2;
     List<Thread *> *L3;
+
+    // wanyin
+    SortedList<Thread *> *L1_readyList;
+    SortedList<Thread *> *L2_readyList;
+    List<Thread *> *L3_readyList;
+
+
     Thread *toBeDestroyed;	// finishing thread to be destroyed
     				// by the next thread that runs
 };
