@@ -64,6 +64,7 @@ Thread::Thread(char* threadName, int threadID)
 void Thread::UpdateBurst(int endTime){
     double duration = endTime - enterCPUTime;
     apprBurstTime = 0.5 * duration + 0.5 * apprBurstTime;
+    // debug[D]
 }
 //----------------------------------------------------------------------
 // Thread::~Thread

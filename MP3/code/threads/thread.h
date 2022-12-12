@@ -80,8 +80,9 @@ class Thread {
     void *machineState[MachineStateSize];  // all registers except for stackTop
 
     // wanyin
-  int brustTime;
-  int startTime;
+  double brustTime;
+  double startTime;
+  double WaitingTime;
   int schePriority;
 
   public:
@@ -128,6 +129,8 @@ class Thread {
   double getBurstTime() { return brustTime; }
   void setStartTime(double s) { startTime = s; }
   double getStartTime() { return startTime; }
+  void setWaitingTime(double w) { WaitingTime = w; }
+  double getWaitingTime() { return WaitingTime; }
 
   int stick;
 
