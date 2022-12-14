@@ -229,10 +229,17 @@ Thread::Yield ()
     
     nextThread = kernel->scheduler->FindNextToRun();
     if (nextThread != NULL) {
-	kernel->scheduler->ReadyToRun(this);
-	kernel->scheduler->Run(nextThread, FALSE);
+        if (nextThread->getPriority() > this->getPriority()) {
+            kernel->scheduler->ReadyToRun(nextThread);
+        } else {
+            kernel->scheduler->ReadyToRun(this);
+	        kernel->scheduler->Run(nextThread, FALSE);
+        }
+	
     }
     (void) kernel->interrupt->SetLevel(oldLevel);
+
+
 }
 
 //----------------------------------------------------------------------
