@@ -134,25 +134,39 @@ Scheduler::ReadyToRun (Thread *thread)
         thread->listBelong = 1;
     }
 
+    
 
     // wanyin
+    // thread->setWaitingTime();
     int p = thread->getPriority();
     if (p > 99) { // L1 
         L1_readyList->Insert(thread);
-        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << thread->getID() << "is inserted into queue L1_readyList");
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << " ] Thread : [ " << thread->getID() << " ] is inserted into queue L1_readyList");
         // if the current thread has the lowest burst time, not be preempted
         int currentBurstTime = kernel->currentThread->getBurstTime()*0.5 + (kernel->stats->userTicks-kernel->currentThread->stick)*0.5;
         if (currentBurstTime > thread->getBurstTime()) {
-            kernel->currentThread->Yield(); //?? 
+            kernel->currentThread->Yield(); 
         }
     } else if (p > 49) {
         L2_readyList->Insert(thread);
-        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << thread->getID() << "is inserted into queue L2_readyList");
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << " ] Thread : [ " << thread->getID() << " ] is inserted into queue L2_readyList");
     } else if (p >= 0) {
         L3_readyList->Append(thread);
-        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << thread->getID() << "is inserted into queue L3_readyList");
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << " ] Thread : [ " << thread->getID() << " ] is inserted into queue L3_readyList");
     }
 }
+
+// aging mechanism
+void aging_mechanism (Thread* a) {
+    int old_priority = a->getPriority();
+    if (a->getWaitingTime() >= 1500) {
+        a->setPriority(old_priority+10);
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << " ] Thread : [ " << a->getID() << " change its priority from [ "<< old_priority << " to " << old_priority+10);
+    }
+}
+
+
+
 
 //----------------------------------------------------------------------
 // Scheduler::FindNextToRun
@@ -169,13 +183,13 @@ Scheduler::FindNextToRun ()
     Thread* nextToRun = NULL;
     if(!L1->IsEmpty()){
         nextToRun = L1->RemoveFront();
-        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << kernel->currentThread->getID() << "is remove from queue L1");
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << " ] Thread : [ " << kernel->currentThread->getID() << "] is remove from queue L1");
     } else if(!L2->IsEmpty()){
         nextToRun = L2->RemoveFront();
-        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << kernel->currentThread->getID() << "is remove from queue L2");
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << " ] Thread : [ " << kernel->currentThread->getID() << "] is remove from queue L2");
     } else if(!L3->IsEmpty()){
         nextToRun = L3->RemoveFront();
-        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << kernel->currentThread->getID() << "is remove from queue L3");
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << " ] Thread : [ " << kernel->currentThread->getID() << "] is remove from queue L3");
     }
     return nextToRun;
     // if (readyList->IsEmpty()) {
@@ -232,7 +246,7 @@ Scheduler::Run (Thread *nextThread, bool finishing)
     int diff = oldThread->getBurstTime() - (kernel->stats->userTicks-oldThread->stick);
     if (diff > 0) {
         oldThread->setBurstTime(diff); // ??
-        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << oldThread->getID()<< "] update approximate burst time, from " << "?" <<", add" << "?" << ", to" << "?" );
+        DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << " ] Thread : [ " << oldThread->getID()<< " ] update approximate burst time, from " << "?" <<" , add " << "?" << " , to " << "?" );
     }
     
 
@@ -243,7 +257,10 @@ Scheduler::Run (Thread *nextThread, bool finishing)
     // in switch.s.  You may have to think
     // a bit to figure out what happens after this, both from the point
     // of view of the thread and from the perspective of the "outside world".
-    DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << "] Thread : [" << nextThread->getID()<< "] is now selected for execution, thread [" << oldThread->getID() <<"] is replaced,and it has executed [" << kernel->stats->userTicks);
+    
+    
+    DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << " ] Thread : [ " << nextThread->getID()<< " ] is now selected for execution, thread [ " << oldThread->getID() <<" ] is replaced, and it has executed [ " << kernel->stats->totalTicks-oldThread->stick << " ]");
+    oldThread->stick = kernel->stats->totalTicks;
     SWITCH(oldThread, nextThread);
 
     // we're back, running oldThread

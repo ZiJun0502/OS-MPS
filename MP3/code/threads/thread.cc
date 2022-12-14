@@ -48,9 +48,11 @@ Thread::Thread(char* threadName, int threadID)
     priority = kernel->execPriority[threadID];
     
     // wanyin 
-    stick = -1; // 先將執行的時間設定為-1
+    stick = 0; 
     this->setBurstTime(0);
     this->setPriority(priority);
+
+    
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
@@ -64,7 +66,7 @@ Thread::Thread(char* threadName, int threadID)
 void Thread::UpdateBurst(int endTime){
     double duration = endTime - enterCPUTime;
     apprBurstTime = 0.5 * duration + 0.5 * apprBurstTime;
-    // debug[D]
+    DEBUG(dbgMFQ, "Tick [ " << kernel->stats->totalTicks << " ] Thread : [ " << this->getID()<< " ] update approximate burst time, from: [ " << apprBurstTime <<" , add [ " << duration << " ], " << apprBurstTime << " ]");
 }
 //----------------------------------------------------------------------
 // Thread::~Thread
@@ -263,6 +265,9 @@ Thread::Sleep (bool finishing)
     
     DEBUG(dbgThread, "Sleeping thread: " << name);
     DEBUG(dbgTraCode, "In Thread::Sleep, Sleeping thread: " << name << ", " << kernel->stats->totalTicks);
+    
+    // start to wait?
+    this->setWaitingTime(0);
 
     status = BLOCKED;
 	//cout << "debug Thread::Sleep " << name << "wait for Idle\n";
