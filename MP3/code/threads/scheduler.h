@@ -31,7 +31,10 @@ class Scheduler {
     void CheckToBeDestroyed();// Check if thread that had been
     				// running needs to be deleted
     void Print();		// Print contents of ready list
-    
+    void age();
+    void age_util(ListIterator<Thread *>* it, List<Thread *> *temp);
+    //void reorder();
+    bool preempting;
     // SelfTest for scheduler is implemented in class Thread
     
   private:
