@@ -41,9 +41,8 @@ Thread::Thread(char* threadName, int threadID)
     apprBurstTime = 0;
     enterCPUTime = 0;
     leaveCPUTime = 0;
-    enterWait = 0;
+    enterWaitTime = 0;
     waitingTime = 0;
-    remainBurstTime = 0;
     priority = kernel->execPriority[threadID];
     stackTop = NULL;
     stack = NULL;
@@ -55,10 +54,7 @@ Thread::Thread(char* threadName, int threadID)
     }
     space = NULL;
 }
-void Thread::UpdateBurst(int endTime){
-    double duration = endTime - enterCPUTime;
-    apprBurstTime = 0.5 * duration + 0.5 * apprBurstTime;
-}
+
 //----------------------------------------------------------------------
 // Thread::~Thread
 // 	De-allocate a thread.
@@ -207,7 +203,17 @@ Thread::Finish ()
 //
 // 	Similar to Thread::Sleep(), but a little different.
 //----------------------------------------------------------------------
-
+void Thread::AccumulateBurstTime(int now){
+    CPUBurstTime += now - lastCPU;
+    lastCPU = now;
+}
+void
+Thread::resetWaiting (int now)
+{
+    enterWaitTime = now;
+    lastWait = now;
+    waitingTime = 0;
+}
 void
 Thread::Yield ()
 {
@@ -218,10 +224,20 @@ Thread::Yield ()
     
     DEBUG(dbgThread, "Yielding thread: " << name);
     
-    nextThread = kernel->scheduler->FindNextToRun();
-    if (nextThread != NULL) {
-	kernel->scheduler->ReadyToRun(this);
-	kernel->scheduler->Run(nextThread, FALSE);
+    int now = kernel->stats->totalTicks;
+    AccumulateBurstTime(now);
+    kernel->scheduler->age();
+    //preempting
+    if(this->listBelong == 3 || kernel->scheduler->preempting){
+        nextThread = kernel->scheduler->FindNextToRun();
+        if (nextThread != NULL) {
+            this->leaveCPUTime = now;
+            nextThread->enterCPUTime = now;
+            nextThread->lastCPU = now;
+            nextThread->resetWaiting(now);
+            kernel->scheduler->ReadyToRun(this);
+            kernel->scheduler->Run(nextThread, FALSE);
+        }
     }
     (void) kernel->interrupt->SetLevel(oldLevel);
 }
@@ -246,6 +262,11 @@ Thread::Yield ()
 //	so that there can't be a time slice between pulling the first thread
 //	off the ready list, and switching to it.
 //----------------------------------------------------------------------
+
+void Thread::UpdateBurst(int endTime){
+    apprBurstTime = 0.5 * CPUBurstTime + 0.5 * apprBurstTime;
+    CPUBurstTime = 0;
+}
 void
 Thread::Sleep (bool finishing)
 {
@@ -258,6 +279,8 @@ Thread::Sleep (bool finishing)
     DEBUG(dbgTraCode, "In Thread::Sleep, Sleeping thread: " << name << ", " << kernel->stats->totalTicks);
 
     status = BLOCKED;
+    //update approximated burst time when switch from running->waiting
+    UpdateBurst(kernel->stats->totalTicks);
 	//cout << "debug Thread::Sleep " << name << "wait for Idle\n";
     while ((nextThread = kernel->scheduler->FindNextToRun()) == NULL) {
 		kernel->interrupt->Idle();	// no one to run, wait for an interrupt

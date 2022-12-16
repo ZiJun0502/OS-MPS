@@ -195,7 +195,22 @@ consoleIO_test5: consoleIO_test5.o start.o
 	$(LD) $(LDFLAGS) start.o consoleIO_test5.o -o consoleIO_test5.coff
 	$(COFF2NOFF) consoleIO_test5.coff consoleIO_test5
  
-
+hw3t1.o: hw3t1.c
+	$(CC) $(CFLAGS) -c hw3t1.c
+hw3t1: hw3t1.o start.o
+	$(LD) $(LDFLAGS) start.o hw3t1.o -o hw3t1.coff
+	$(COFF2NOFF) hw3t1.coff hw3t1
+hw3t2.o: hw3t2.c
+	$(CC) $(CFLAGS) -c hw3t2.c
+hw3t2: hw3t2.o start.o
+	$(LD) $(LDFLAGS) start.o hw3t2.o -o hw3t2.coff
+	$(COFF2NOFF) hw3t2.coff hw3t2
+hw3t3.o: hw3t3.c
+	$(CC) $(CFLAGS) -c hw3t3.c
+hw3t3: hw3t3.o start.o
+	$(LD) $(LDFLAGS) start.o hw3t3.o -o hw3t3.coff
+	$(COFF2NOFF) hw3t3.coff hw3t3
+ 
 fileIO_test1.o: fileIO_test1.c
 	$(CC) $(CFLAGS) -c fileIO_test1.c
 fileIO_test1: fileIO_test1.o start.o

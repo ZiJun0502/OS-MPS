@@ -105,14 +105,18 @@ class Thread {
 	int getID() { return (ID); }
     void Print() { cout << name; }
     void SelfTest();		// test whether thread impl is working
+    //
+    void AccumulateBurstTime(int now);
+    void resetWaiting (int now);
     void UpdateBurst(int endTime);
   int listBelong;
   double CPUBurstTime;
   double apprBurstTime;
-  double remainBurstTime;
   int enterCPUTime;
   int leaveCPUTime;
-  int enterWait;
+  int lastCPU;
+  int lastWait;
+  int enterWaitTime;
   int waitingTime;
   int priority;
   private:
@@ -124,7 +128,7 @@ class Thread {
     ThreadStatus status;	// ready, running or blocked
     char* name;
 	  int   ID;
-    
+    void age_util();
     void StackAllocate(VoidFunctionPtr func, void *arg);
     				// Allocate a stack for thread.
 				// Used internally by Fork()
