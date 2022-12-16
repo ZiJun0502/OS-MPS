@@ -29,13 +29,15 @@
 //	Initially, no ready threads.
 //----------------------------------------------------------------------
 int cmp1(Thread* a, Thread* b){
-    if(a->CPUBurstTime > b->CPUBurstTime) return 1;
-    if(a->CPUBurstTime < b->CPUBurstTime) return -1;
+    double A = a->apprBurstTime - (double)a->CPUBurstTime;
+    double B = b->apprBurstTime - (double)b->CPUBurstTime;
+    if(A > B) return 1;
+    if(A < B) return -1;
     return 0;
 }
 int cmp2(Thread* a, Thread* b){
-    if(a->priority > b->priority) return 1;
-    if(a->priority < b->priority) return -1;
+    if(a->priority > b->priority) return -1;
+    if(a->priority < b->priority) return 1;
     return 0;
 }
 Scheduler::Scheduler()
