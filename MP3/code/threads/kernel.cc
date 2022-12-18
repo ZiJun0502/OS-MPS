@@ -47,7 +47,6 @@ Kernel::Kernel(int argc, char **argv)
             debugUserProg = TRUE;
 		} else if (strcmp(argv[i], "-e") == 0) {
         	execfile[++execfileNum]= argv[++i];
-			cout << execfile[execfileNum] << "\n";
 		} else if (strcmp(argv[i], "-ci") == 0) {
 	    	ASSERT(i + 1 < argc);
 	    	consoleIn = argv[i + 1];
@@ -84,7 +83,7 @@ Kernel::Kernel(int argc, char **argv)
                 p = p*10+(argv[i][j] - '0');
             }
             execPriority[execfileNum] = p;
-			cout << "Executing: "<<execfile[execfileNum] <<", priority: "<<execPriority[execfileNum]<< "\n";
+			//cout << "Executing: "<<execfile[execfileNum] <<", priority: "<<execPriority[execfileNum]<< "\n";
         }
     }
 }
@@ -282,6 +281,7 @@ void Kernel::ExecAll()
 
 int Kernel::Exec(char* name)
 {
+    //cout << name << ' ' << threadNum<< '\n';
 	t[threadNum] = new Thread(name, threadNum);
 	t[threadNum]->space = new AddrSpace();
 	t[threadNum]->Fork((VoidFunctionPtr) &ForkExecute, (void *)t[threadNum]);

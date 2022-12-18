@@ -71,18 +71,14 @@ Scheduler::~Scheduler()
 //	"thread" is the thread to be put on the ready list.
 //----------------------------------------------------------------------
 void 
-Scheduler::age_util(ListIterator<Thread *>* it, List<Thread *> *temp){
+Scheduler::age_util(List<Thread*>*li, ListIterator<Thread *>* it, List<Thread *> *temp){
     int now = kernel->stats->totalTicks;
     Thread* t;
     for(;!it->IsDone();it->Next()){
         t = it->Item();
-        t->waitingTime += now - t->enterWaitTime;
-        t->enterWaitTime = now;
-        if(t->waitingTime >= 1500){
-            t->waitingTime -= 1500;
-            t->priority += 10;
-        }
         temp->Append(t);
+        li->RemoveFront();
+        if(li->IsEmpty()) break;
     }
 }
 
@@ -90,41 +86,65 @@ void
 Scheduler::age(){
     ListIterator<Thread *>* it = new ListIterator<Thread *>(L1);
     List<Thread *> *temp = new List<Thread *>;
-    age_util(it, temp);
+    age_util(L1, it, temp);
     it = new ListIterator<Thread *>(L2);
-    age_util(it, temp);
+    age_util(L2, it, temp);
     it = new ListIterator<Thread *>(L3);
-    age_util(it, temp);
+    age_util(L3, it, temp);
     it = new ListIterator<Thread *>(temp);
     Thread* t;
     double BurstTime_min = 1e18;
     int now = kernel->stats->totalTicks;
     bool higherQueue = 0;
+    //cout << "HELLO0\n";
     for(;!it->IsDone();it->Next()){
         t = it->Item();
         //age
         t->waitingTime += now - t->lastWait;
         t->lastWait = now;
+        int old = t->priority;
         if(t->waitingTime > 1500){
+            t->waitingTime -= 1500;
             t->priority += 10;
             if(t->priority >= 149) t->priority = 149;
+            if(t->priority != old){
+                DEBUG(dbgMFQ, "[C] Tick ["<<
+                kernel->stats->totalTicks<<
+                "]: Thread ["<<
+                t->getID()<<
+                "] changes its priority from ["<<
+                old<<
+                "] to ["<<
+                t->priority<<
+                "]");
+            }
         }
         //put into ready queue
         if(t->priority >= 0 && t->priority <= 49){
             L3->Append(t);
-            t->listBelong = 3;
+            if(t->listBelong != 3){
+                DEBUG(dbgMFQ, "[A] Tick [" << kernel->stats->totalTicks << "]: Thread [" << t->getID() << "] is inserted into queue L[" << t->listBelong << "]");
+                t->listBelong = 3;
+            }
         }else if(t->priority <= 99){
             L2->Insert(t);
-            t->listBelong = 2;
+            if(t->listBelong != 2){
+                DEBUG(dbgMFQ, "[A] Tick [" << kernel->stats->totalTicks << "]: Thread [" << t->getID() << "] is inserted into queue L[" << t->listBelong << "]");
+                t->listBelong = 2;
+            }
         }else if(t->priority <= 149){
             L1->Insert(t);
-            t->listBelong = 1;
+            if(t->listBelong != 1){
+                t->listBelong = 1;
+                DEBUG(dbgMFQ, "[A] Tick [" << kernel->stats->totalTicks << "]: Thread [" << t->getID() << "] is inserted into queue L[" << t->listBelong << "]");
+            }
             double remain = t->apprBurstTime - (double)t->CPUBurstTime;
             BurstTime_min = min(BurstTime_min, remain);
         }
-
+        //cout << "HELLO1\n";
         higherQueue |= t->listBelong < kernel->currentThread->listBelong;
     }
+    delete temp;
     //3 cases for preempting
     //1. there exist a thread from higher queue
     //2. L1 thread with lower approximate CPU burst time
@@ -140,16 +160,25 @@ Scheduler::ReadyToRun (Thread *thread)
 	//cout << "Putting thread on ready list: " << thread->getName() << endl ;
     thread->setStatus(READY);
     // readyList->Append(thread);
+    int queueLevel = -1;
     if(thread->priority >= 0 && thread->priority <= 49){
         L3->Append(thread);
         thread->listBelong = 3;
+        queueLevel = 3;
     }else if(thread->priority <= 99){
         L2->Insert(thread);
         thread->listBelong = 2;
+        queueLevel = 2;
     }else if(thread->priority <= 149){
         L1->Insert(thread);
         thread->listBelong = 1;
+        queueLevel = 1;
     }
+    DEBUG(dbgMFQ, "[A] Tick ["<< 
+    kernel->stats->totalTicks <<
+    "]: Thread ["<<thread->getID()<<
+    "] is inserted into queue L["<<queueLevel<<
+    "]");
 }
 
 //----------------------------------------------------------------------
@@ -165,12 +194,26 @@ Scheduler::FindNextToRun ()
 {
     ASSERT(kernel->interrupt->getLevel() == IntOff);
     Thread* nextToRun = NULL;
+    int ID, queueLevel;
     if(!L1->IsEmpty()){
         nextToRun = L1->RemoveFront();
+        queueLevel = 1;
     } else if(!L2->IsEmpty()){
         nextToRun = L2->RemoveFront();
+        queueLevel = 2;
     } else if(!L3->IsEmpty()){
         nextToRun = L3->RemoveFront();
+        queueLevel = 3;
+    }
+    if(nextToRun != NULL){
+        ID = nextToRun->getID();
+        DEBUG(dbgMFQ, "[B] Tick ["<<
+        kernel->stats->totalTicks<<
+        "]: Thread ["<<
+        ID<<
+        "] is removed from queue L["<<
+        queueLevel<<
+        "]");
     }
     return nextToRun;
     // if (readyList->IsEmpty()) {
@@ -226,7 +269,17 @@ Scheduler::Run (Thread *nextThread, bool finishing)
     // in switch.s.  You may have to think
     // a bit to figure out what happens after this, both from the point
     // of view of the thread and from the perspective of the "outside world".
-
+    if(oldThread != nextThread){
+        DEBUG(dbgMFQ, "[E] Tick ["<<
+        kernel->stats->totalTicks<<
+        "]: Thread ["<<
+        nextThread->getID()<<
+        "] is now selected for execution, thread ["<<
+        oldThread->getID()<<
+        "] is replaced, and it has executed ["<<
+        oldThread->dbgCPU<<
+        "] ticks");
+    }
     SWITCH(oldThread, nextThread);
 
     // we're back, running oldThread

@@ -48,8 +48,9 @@ Alarm::CallBack()
 {
     Interrupt *interrupt = kernel->interrupt;
     MachineStatus status = interrupt->getStatus();
-    
+    // cout << "interrupt->YieldOnReturn()" << "\n";
     if (status != IdleMode) {
-	interrupt->YieldOnReturn();
+        // cout << "interrupt->YieldOnReturn()" << "\n";
+	    interrupt->YieldOnReturn();
     }
 }

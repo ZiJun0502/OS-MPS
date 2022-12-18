@@ -39,9 +39,7 @@ Thread::Thread(char* threadName, int threadID)
     name = threadName;
     CPUBurstTime = 0;
     apprBurstTime = 0;
-    enterCPUTime = 0;
-    leaveCPUTime = 0;
-    enterWaitTime = 0;
+    lastCPU = 0;
     waitingTime = 0;
     priority = kernel->execPriority[threadID];
     stackTop = NULL;
@@ -206,11 +204,11 @@ Thread::Finish ()
 void Thread::AccumulateBurstTime(int now){
     CPUBurstTime += now - lastCPU;
     lastCPU = now;
+    dbgCPU = CPUBurstTime;
 }
 void
 Thread::resetWaiting (int now)
 {
-    enterWaitTime = now;
     lastWait = now;
     waitingTime = 0;
 }
@@ -223,16 +221,16 @@ Thread::Yield ()
     ASSERT(this == kernel->currentThread);
     
     DEBUG(dbgThread, "Yielding thread: " << name);
+    //DEBUG(dbgMFQ, "Yielding thread: " << name);
     
     int now = kernel->stats->totalTicks;
-    AccumulateBurstTime(now);
+    this->AccumulateBurstTime(now);
     kernel->scheduler->age();
     //preempting
     if(this->listBelong == 3 || kernel->scheduler->preempting){
         nextThread = kernel->scheduler->FindNextToRun();
         if (nextThread != NULL) {
-            this->leaveCPUTime = now;
-            nextThread->enterCPUTime = now;
+            this->lastWait = now;
             nextThread->lastCPU = now;
             nextThread->resetWaiting(now);
             kernel->scheduler->ReadyToRun(this);
@@ -263,8 +261,22 @@ Thread::Yield ()
 //	off the ready list, and switching to it.
 //----------------------------------------------------------------------
 
-void Thread::UpdateBurst(int endTime){
+void Thread::UpdateBurst(int now){
+    
+    double old = apprBurstTime;
     apprBurstTime = 0.5 * CPUBurstTime + 0.5 * apprBurstTime;
+    DEBUG(dbgMFQ, "[D] Tick ["<<
+        kernel->stats->totalTicks<<
+        "]: Thread ["<<
+        getID()<<
+        "] update approximate burst time, from: ["<<
+        old<<
+        "], add ["<<
+        CPUBurstTime<<
+        "], to ["<<
+        apprBurstTime<<
+        "]");
+    dbgCPU = CPUBurstTime;
     CPUBurstTime = 0;
 }
 void
@@ -279,13 +291,19 @@ Thread::Sleep (bool finishing)
     DEBUG(dbgTraCode, "In Thread::Sleep, Sleeping thread: " << name << ", " << kernel->stats->totalTicks);
 
     status = BLOCKED;
+    int now = kernel->stats->totalTicks;
     //update approximated burst time when switch from running->waiting
-    UpdateBurst(kernel->stats->totalTicks);
+    AccumulateBurstTime(now);
+    if(!finishing){
+        UpdateBurst(now);
+    }
 	//cout << "debug Thread::Sleep " << name << "wait for Idle\n";
     while ((nextThread = kernel->scheduler->FindNextToRun()) == NULL) {
 		kernel->interrupt->Idle();	// no one to run, wait for an interrupt
 	}    
     // returns when it's time for us to run
+    nextThread->lastCPU = now;
+    nextThread->resetWaiting(now);
     kernel->scheduler->Run(nextThread, finishing); 
 }
 
