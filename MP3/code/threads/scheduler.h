@@ -32,7 +32,7 @@ class Scheduler {
     				// running needs to be deleted
     void Print();		// Print contents of ready list
     void age();
-    void age_util(ListIterator<Thread *>* it, List<Thread *> *temp);
+    void age_util(List<Thread*>*li, ListIterator<Thread *>* it, List<Thread *> *temp);
     //void reorder();
     bool preempting;
     // SelfTest for scheduler is implemented in class Thread

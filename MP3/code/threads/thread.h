@@ -112,11 +112,9 @@ class Thread {
   int listBelong;
   double CPUBurstTime;
   double apprBurstTime;
-  int enterCPUTime;
-  int leaveCPUTime;
+  int dbgCPU;
   int lastCPU;
   int lastWait;
-  int enterWaitTime;
   int waitingTime;
   int priority;
   private:
