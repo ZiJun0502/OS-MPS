@@ -95,6 +95,8 @@ public:
 	bool _Create(char *name, int initialSize){
 		return Create(name, initialSize);
 	}
+	bool CreateDirectory(char *name){}
+	
 	OpenFileId OpenAFile(char *name) {
         int file_idx = this->search_empty_idx();
         OpenFile* of = Open(name);

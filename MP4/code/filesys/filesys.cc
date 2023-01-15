@@ -228,7 +228,71 @@ bool FileSystem::Create(char *name, int initialSize)
     delete directory;
     return success;
 }
+// bool FileSystem::CreateDirectory(char *name){
+// 		Directory *directory;
+// 		PersistentBitmap *freeMap;
+// 		FileHeader *hdr;
+// 		int sector;
+// 		bool success;
 
+
+// 		directory = new Directory(NumDirEntries);
+// 		directory->FetchFrom(directoryFile);
+// 		char *tok = strtok(name, "/");
+// 		char *prev = tok;
+// 		OpenFile* iter = directoryFile;
+// 		bool not_found = 0;
+// 		while(tok){
+// 			if(directory->Find(tok) == -1){
+// 				not_found = 1;
+// 				break;
+// 			}else{
+// 				//go one level deeper
+// 				iter = new OpenFile(sector);
+// 				directory->FetchFrom(iter);
+// 				prev = tok;
+// 				tok = strtok(NULL, "/");
+// 			}
+// 		}
+// 		if(not_found){
+// 			char* temp = strtok(tok, "/");
+// 			//path exist
+// 			if(temp == NULL){
+// 				if (directory->Find(tok) != -1)
+// 					success = FALSE; // file is already in directory
+// 				else
+// 				{
+// 					freeMap = new PersistentBitmap(freeMapFile, NumSectors);
+// 					sector = freeMap->FindAndSet(); // find a sector to hold the file header
+// 					if (sector == -1)
+// 						success = FALSE; // no free block for file header
+// 					else if (!directory->Add(tok, sector))
+// 						success = FALSE; // no space in directory
+// 					else
+// 					{
+// 						hdr = new FileHeader();
+// 						if (!hdr->Allocate(freeMap, DirectoryFileSize))
+// 							success = FALSE; // no space on disk for data
+// 						else
+// 						{
+// 							success = TRUE;
+// 							// everthing worked, flush all changes back to disk
+// 							hdr->WriteBack(sector);
+// 							directory->WriteBack(directoryFile);
+// 							freeMap->WriteBack(freeMapFile);
+// 						}
+// 						delete hdr;
+// 					}
+// 					delete freeMap;
+// 				}
+// 			}else{
+// 				success = FALSE;
+// 			}
+// 		}
+		
+// 		delete directory;
+// 		return success;
+// 	}
 //----------------------------------------------------------------------
 // FileSystem::Open
 // 	Open a file for reading and writing.

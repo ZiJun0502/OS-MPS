@@ -70,32 +70,85 @@ bool FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 {
 	numBytes = fileSize;
 	numSectors = divRoundUp(fileSize, SectorSize);
-	if (freeMap->NumClear() < numSectors)
-		return FALSE; // not enough space
 
-	for (int i = 0; i < numSectors; i++)
-	{
-		dataSectors[i] = freeMap->FindAndSet();
-		// since we checked that there was enough free space,
-		// we expect this to succeed
-		ASSERT(dataSectors[i] >= 0);
+	if (freeMap->NumClear() < numSectors)
+		return FALSE;
+	//base case
+	if(fileSize <= L0){
+		for (int i = 0; i < numSectors; i++)
+		{
+			dataSectors[i] = freeMap->FindAndSet();
+			ASSERT(dataSectors[i] >= 0);
+		}
+		
+	}// recursive step
+	else{
+		int levelSize;
+		if(fileSize <= L1){
+			levelSize = L0;
+		}else if(fileSize <= L2){
+			levelSize = L1;
+		}else if(fileSize <= L3){
+			levelSize = L2;
+		}else{
+			levelSize = L3;
+		}
+		for(int i = 0 ; fileSize > 0 ; i++, fileSize -= levelSize){
+			dataSectors[i] = freeMap->FindAndSet();
+			FileHeader* child = new FileHeader();
+			child->Allocate(freeMap, min(levelSize, fileSize));
+			child->WriteBack(dataSectors[i]);
+		}
 	}
 	return TRUE;
 }
 
+
+// bool FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
+// {
+// 	numBytes = fileSize;
+// 	numSectors = divRoundUp(fileSize, SectorSize);  // need numSectors to support total 'fileSize' bytes
+// 	if (freeMap->NumClear() < numSectors)
+// 		return FALSE; // not enough space
+// 	for (int i = 0; i < numSectors; i++)
+// 	{
+// 		// Allocate datablock here! One sector at a time
+// 		dataSectors[i] = freeMap->FindAndSet();
+// 		// since we checked that there was enough free space,
+// 		// we expect this to succeed
+// 		ASSERT(dataSectors[i] >= 0); // sector number should be >=0
+// 	}
+// 	return TRUE;
+// }
 //----------------------------------------------------------------------
 // FileHeader::Deallocate
 // 	De-allocate all the space allocated for data blocks for this file.
 //
 //	"freeMap" is the bit map of free disk sectors
 //----------------------------------------------------------------------
-
+// void FileHeader::Deallocate(PersistentBitmap *freeMap)
+// {
+// 	for (int i = 0; i < numSectors; i++)
+// 	{
+// 		ASSERT(freeMap->Test((int)dataSectors[i])); // ought to be marked!
+// 		freeMap->Clear((int)dataSectors[i]);
+// 	}
+// }
 void FileHeader::Deallocate(PersistentBitmap *freeMap)
 {
-	for (int i = 0; i < numSectors; i++)
-	{
-		ASSERT(freeMap->Test((int)dataSectors[i])); // ought to be marked!
-		freeMap->Clear((int)dataSectors[i]);
+	if(numBytes <= L0){
+		for (int i = 0; i < numSectors; i++)
+		{	
+			ASSERT(freeMap->Test((int)dataSectors[i]));
+			freeMap->Clear((int)dataSectors[i]);
+		}
+	}else{
+		for (int i = 0; i < numSectors ; i++) // 要 deallocate 幾次 (幾個level)
+		{
+			FileHeader* child = new FileHeader();
+			child->FetchFrom(dataSectors[i]);	
+			child->Deallocate(freeMap); // recursive.
+		}
 	}
 }
 
@@ -109,11 +162,6 @@ void FileHeader::Deallocate(PersistentBitmap *freeMap)
 void FileHeader::FetchFrom(int sector)
 {
 	kernel->synchDisk->ReadSector(sector, (char *)this);
-
-	/*
-		MP4 Hint:
-		After you add some in-core informations, you will need to rebuild the header's structure
-	*/
 }
 
 //----------------------------------------------------------------------
@@ -126,15 +174,6 @@ void FileHeader::FetchFrom(int sector)
 void FileHeader::WriteBack(int sector)
 {
 	kernel->synchDisk->WriteSector(sector, (char *)this);
-
-	/*
-		MP4 Hint:
-		After you add some in-core informations, you may not want to write all fields into disk.
-		Use this instead:
-		char buf[SectorSize];
-		memcpy(buf + offset, &dataToBeWritten, sizeof(dataToBeWritten));
-		...
-	*/
 }
 
 //----------------------------------------------------------------------
@@ -146,10 +185,30 @@ void FileHeader::WriteBack(int sector)
 //
 //	"offset" is the location within the file of the byte in question
 //----------------------------------------------------------------------
-
+// int FileHeader::ByteToSector(int offset)
+// {
+// 	return (dataSectors[offset / SectorSize]);
+// }
 int FileHeader::ByteToSector(int offset)
 {
-	return (dataSectors[offset / SectorSize]);
+	// base case
+	if(numBytes <= L0)	
+		return (dataSectors[offset / SectorSize]);
+	int levelSize;
+	FileHeader* child = new FileHeader();
+	if(numBytes <= L1){
+		levelSize = L0;
+	}else if(numBytes <= L2){
+		levelSize = L1;
+	}else if(numBytes <= L3){
+		levelSize = L2;
+	}else{
+		levelSize = L3;
+	}
+	int ind = offset / levelSize;
+	int off_offset = offset - ind * levelSize;
+	child->FetchFrom(dataSectors[ind]);
+	child->ByteToSector(off_offset);
 }
 
 //----------------------------------------------------------------------
@@ -177,17 +236,27 @@ void FileHeader::Print()
 	for (i = 0; i < numSectors; i++)
 		printf("%d ", dataSectors[i]);
 	printf("\nFile contents:\n");
-	for (i = k = 0; i < numSectors; i++)
-	{
-		kernel->synchDisk->ReadSector(dataSectors[i], data);
-		for (j = 0; (j < SectorSize) && (k < numBytes); j++, k++)
+	
+	if(numBytes <= L0){
+		for (i = k = 0; i < numSectors; i++)
 		{
-			if ('\040' <= data[j] && data[j] <= '\176') // isprint(data[j])
-				printf("%c", data[j]);
-			else
-				printf("\\%x", (unsigned char)data[j]);
+			kernel->synchDisk->ReadSector(dataSectors[i], data);
+			for (j = 0; (j < SectorSize) && (k < numBytes); j++, k++)
+			{
+				if ('\040' <= data[j] && data[j] <= '\176') 
+					printf("%c", data[j]);
+				else
+					printf("\\%x", (unsigned char)data[j]);
+			}
+			printf("\n");
 		}
-		printf("\n");
+	}else{
+		for(int i=0; i< numSectors/NumDirect; i++){
+			FileHeader* child;
+			child->FetchFrom(dataSectors[i]);
+			child->Print();
+		}
 	}
 	delete[] data;
+	
 }

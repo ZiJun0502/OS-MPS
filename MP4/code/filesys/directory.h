@@ -84,7 +84,6 @@ private:
     int tableSize;         // Number of directory entries
     DirectoryEntry *table; // Table of pairs:
                            // <file name, file header location>
-
     int FindIndex(char *name); // Find the index into the directory
                                //  table corresponding to "name"
 };

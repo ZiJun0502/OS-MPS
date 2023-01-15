@@ -19,7 +19,10 @@
 
 #define NumDirect ((SectorSize - 2 * sizeof(int)) / sizeof(int))
 #define MaxFileSize (NumDirect * SectorSize)
-
+const int L0 = NumDirect * SectorSize; //4kb
+const int L1 = L0 * NumDirect;
+const int L2 = L1 * NumDirect;
+const int L3 = L2 * NumDirect;
 // The following class defines the Nachos "file header" (in UNIX terms,
 // the "i-node"), describing where on disk to find all of the data in the file.
 // The file header is organized as a simple table of pointers to
