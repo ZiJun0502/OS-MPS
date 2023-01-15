@@ -44,6 +44,7 @@
 #include "main.h"
 #include "filesys.h"
 #include "openfile.h"
+#include "filehdr.h"
 #include "sysdep.h"
 
 // global variables
@@ -141,8 +142,11 @@ void Print(char *name)
         for (i = 0; i < amountRead; i++)
             printf("%c", buffer[i]);
     delete[] buffer;
-
+    FileHeader* hdr = openFile->hdr;
+    printf("\nFileHeader Sector num: %d\n", (hdr)->SectorLength());
+    printf("FileHeader Bytes in disk: %d\n", (hdr)->FileLength());
     delete openFile; // close the Nachos file
+
     return;
 }
 

@@ -258,5 +258,4 @@ void FileHeader::Print()
 		}
 	}
 	delete[] data;
-	
 }
